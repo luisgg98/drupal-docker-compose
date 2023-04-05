@@ -1,0 +1,57 @@
+############################
+### LUIS  GARCIA GARCES
+### UNIVERSIDAD INTERNACIONAL DE LA RIOJA
+############################
+
+version: "3"
+
+services:
+  mysql-database:
+    image: mysql:8.0
+    container_name: mysql-database
+    command: --default-authentication-plugin=mysql_native_password
+    #Drupal, won’t support the newer MySQL authentication, we need to set the --default-authentication
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - backend
+
+  drupal-frontend:
+    image: drupal:8.7.8-fpm-alpine
+    container_name: drupal-frontend
+    depends_on:
+      - mysql-database
+    restart: unless-stopped
+    networks:
+      - backend
+      - frontend
+    volumes:
+      - drupal-data:/var/www/html
+
+  nginx_proxy:
+    image: nginx_proxy
+    build:
+      context: ./
+      dockerfile: ./docker/nginx.dockerfile
+    container_name: nginx_proxy
+    depends_on:
+      - drupal-frontend
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    volumes:
+      - drupal-data:/var/www/html
+      #/home/luisgg/Documentos/Universidad/Contenedores/drupal-docker-compose/nginx/nginx.conf
+    networks:
+      - frontend
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+
+volumes:
+  drupal-data:
+  db-data:
